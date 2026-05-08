@@ -405,6 +405,14 @@ button{cursor:pointer}
 .add-type-btn.on-own{background:var(--gbg);border-color:var(--gold);color:var(--gold)}
 .add-type-btn.on-wish{background:var(--mjbg);border-color:var(--mj);color:var(--mj)}
 .btn-row{display:flex;gap:10px;padding:14px 20px 0}
+/* SCAN PHOTO */
+.scan-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:calc(100% - 40px);margin:0 20px;padding:11px;background:var(--bg2);border:1.5px dashed var(--bd2);border-radius:var(--r);font-size:14px;font-weight:600;color:var(--t2);transition:all .15s}
+.scan-btn:active{opacity:.75}
+.scan-btn.scanning{border-color:var(--gold);color:var(--gold);background:var(--gbg)}
+.scan-result{margin:8px 20px 0;background:var(--gnbg);border:1px solid var(--gnbd);border-radius:var(--rs);padding:10px 13px;font-size:12px;color:var(--green);display:none}
+.scan-result.vis{display:block}
+.scan-err{margin:8px 20px 0;background:var(--rdbg);border:1px solid var(--rdbd);border-radius:var(--rs);padding:10px 13px;font-size:12px;color:var(--red);display:none}
+.scan-err.vis{display:block}
 .btn{flex:1;padding:13px;border-radius:var(--r);font-size:15px;font-weight:600;border:none;transition:all .15s}
 .btn:active{transform:scale(.97);opacity:.85}
 .btn-p{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0d0d0f}
@@ -1010,7 +1018,14 @@ onAuthStateChanged(_auth, async fbUser => {
       <button class="add-type-btn on-own" id="atype-own" onclick="setAddType('own')">📚 Lo tengo</button>
       <button class="add-type-btn" id="atype-wish" onclick="setAddType('wish')">⭐ Lo quiero</button>
     </div>
-    <div style="height:6px"></div>
+    <div style="height:10px"></div>
+    <button class="scan-btn" id="scan-btn" onclick="document.getElementById('scan-input').click()">
+      📷 Escanear portada con IA
+    </button>
+    <input type="file" id="scan-input" accept="image/*" capture="environment" style="display:none" onchange="scanBookCover(this)">
+    <div class="scan-result" id="scan-result"></div>
+    <div class="scan-err" id="scan-err"></div>
+    <div style="height:4px"></div>
     <div class="fgrp"><label class="flbl2">Título *</label><input class="fin" id="a-t" placeholder="Título del libro" oninput="checkSagaSuggest()"></div>
     <div class="fgrp"><label class="flbl2">Autor</label><input class="fin" id="a-a" placeholder="Nombre del autor" oninput="checkSagaSuggest()"></div>
     <div class="fgrp" id="a-fmt-grp"><label class="flbl2">Formato</label>
@@ -1875,6 +1890,98 @@ function submitBook(){
   document.getElementById('saga-sug').classList.remove('vis');
   closeSheet('ov-add');renderLib();
   if(document.getElementById('page-wish').classList.contains('on'))renderWish();
+}
+
+// ════════════════════════════════════════════════════
+//  SCAN BOOK COVER — Gemini Vision + Google Books
+// ════════════════════════════════════════════════════
+const GEMINI_API_KEY = 'TU_API_KEY_AQUI';
+
+async function scanBookCover(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+
+  const btn = document.getElementById('scan-btn');
+  const resEl = document.getElementById('scan-result');
+  const errEl = document.getElementById('scan-err');
+  resEl.classList.remove('vis'); errEl.classList.remove('vis');
+  btn.classList.add('scanning');
+  btn.textContent = '⏳ Analizando imagen…';
+
+  try {
+    // 1. Convertir imagen a base64
+    const b64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = () => rej(new Error('Error leyendo imagen'));
+      r.readAsDataURL(file);
+    });
+
+    // 2. Llamar a Gemini Vision
+    const gemRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: 'Analiza esta imagen de un libro. Extrae el título exacto, el nombre del autor y el ISBN si es visible. Responde SOLO con JSON en este formato exacto, sin markdown ni texto extra: {"titulo":"...","autor":"...","isbn":"..."}. Si no encuentras algún campo, deja el valor como cadena vacía.' },
+              { inline_data: { mime_type: file.type, data: b64 } }
+            ]
+          }]
+        })
+      }
+    );
+    if (!gemRes.ok) throw new Error(`Gemini error ${gemRes.status}`);
+    const gemData = await gemRes.json();
+    const rawText = gemData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const cleaned = rawText.replace(/```json|```/g, '').trim();
+    let parsed;
+    try { parsed = JSON.parse(cleaned); }
+    catch { throw new Error('No se pudo interpretar la respuesta de Gemini'); }
+
+    const titulo = (parsed.titulo || '').trim();
+    const autor = (parsed.autor || '').trim();
+    const isbn = (parsed.isbn || '').trim();
+    if (!titulo) throw new Error('No se detectó título en la imagen');
+
+    // 3. Google Books para enriquecer
+    btn.textContent = '🔍 Buscando en Google Books…';
+    const query = isbn ? `isbn:${isbn}` : encodeURIComponent(`${titulo} ${autor}`);
+    const gbRes = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1&langRestrict=es`);
+    let gbAutor = autor, gbColeccion = '', gbOrden = '';
+    if (gbRes.ok) {
+      const gbData = await gbRes.json();
+      const vol = gbData.items?.[0]?.volumeInfo;
+      if (vol) {
+        gbAutor = vol.authors?.[0] || autor;
+        // Detectar saga desde el título si contiene número
+        const seriesMatch = (vol.title || titulo).match(/(.+?)\s*[,\-–]\s*(.*?\d.*)/);
+        if (!seriesMatch && vol.subtitle) {
+          const subMatch = vol.subtitle.match(/(\w.+?)\s*#?(\d+)/);
+          if (subMatch) { gbColeccion = subMatch[1].trim(); gbOrden = subMatch[2]; }
+        }
+      }
+    }
+
+    // 4. Rellenar formulario
+    document.getElementById('a-t').value = titulo;
+    document.getElementById('a-a').value = gbAutor;
+    if (gbColeccion) document.getElementById('a-c').value = gbColeccion;
+    if (gbOrden) document.getElementById('a-o').value = gbOrden;
+    checkSagaSuggest();
+
+    resEl.textContent = `✓ Detectado: "${titulo}"${gbAutor ? ' · ' + gbAutor : ''}`;
+    resEl.classList.add('vis');
+  } catch (e) {
+    errEl.textContent = '⚠️ ' + (e.message || 'Error desconocido');
+    errEl.classList.add('vis');
+  } finally {
+    btn.classList.remove('scanning');
+    btn.textContent = '📷 Escanear portada con IA';
+  }
 }
 
 // ════════════════════════════════════════════════════
