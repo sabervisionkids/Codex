@@ -14,13 +14,13 @@
   --sf:rgba(255,255,255,.05);--sf2:rgba(255,255,255,.09);
   --bd:rgba(255,255,255,.08);--bd2:rgba(255,255,255,.15);
   --t1:#f0f0f5;--t2:#a0a0b0;--t3:#606070;--t4:#383845;
-  --gold:#e8b84b;--gold2:#f5d080;--gbg:rgba(232,184,75,.12);--gbd:rgba(232,184,75,.28);
-  --mj:#9b8de8;--mjbg:rgba(155,141,232,.12);--mjbd:rgba(155,141,232,.28);
+  --gold:#5b9bd5;--gold2:#8bc0f0;--gbg:rgba(91,155,213,.14);--gbd:rgba(91,155,213,.30);
+  --mj:#e8654e;--mjbg:rgba(232,101,78,.14);--mjbd:rgba(232,101,78,.30);
   --green:#3dd68c;--gnbg:rgba(61,214,140,.12);--gnbd:rgba(61,214,140,.3);
   --orange:#ff9f40;--orbg:rgba(255,159,64,.12);--orbd:rgba(255,159,64,.28);
   --red:#c0524a;--rdbg:rgba(192,82,74,.1);--rdbd:rgba(192,82,74,.22);
   --blue:#4d9eff;--blbg:rgba(77,158,255,.12);--blbd:rgba(77,158,255,.3);
-  --star:#ffb347;
+  --star:#6aa9e0;
   --s0:0 1px 4px rgba(0,0,0,.4);--s1:0 4px 20px rgba(0,0,0,.5);--s2:0 12px 48px rgba(0,0,0,.7);
   --r:14px;--rs:10px;--rx:20px;
   --sat:env(safe-area-inset-top,0px);
@@ -34,13 +34,13 @@
   --sf:rgba(0,0,0,.04);--sf2:rgba(0,0,0,.07);
   --bd:rgba(0,0,0,.08);--bd2:rgba(0,0,0,.15);
   --t1:#0d0d0f;--t2:#505060;--t3:#909098;--t4:#c0c0cc;
-  --gold:#b8860b;--gold2:#d4a820;--gbg:rgba(184,134,11,.1);--gbd:rgba(184,134,11,.28);
-  --mj:#6050c8;--mjbg:rgba(96,80,200,.1);--mjbd:rgba(96,80,200,.28);
+  --gold:#2b6cb0;--gold2:#4a90d9;--gbg:rgba(43,108,176,.1);--gbd:rgba(43,108,176,.28);
+  --mj:#c94a34;--mjbg:rgba(201,74,52,.1);--mjbd:rgba(201,74,52,.28);
   --green:#1a9e5c;--gnbg:rgba(26,158,92,.1);--gnbd:rgba(26,158,92,.3);
   --orange:#d4780a;--orbg:rgba(212,120,10,.1);--orbd:rgba(212,120,10,.28);
   --red:#b04040;--rdbg:rgba(176,64,64,.08);--rdbd:rgba(176,64,64,.2);
   --blue:#0070e0;--blbg:rgba(0,112,224,.1);--blbd:rgba(0,112,224,.3);
-  --star:#e09020;
+  --star:#2b6cb0;
   --s0:0 1px 4px rgba(0,0,0,.1);--s1:0 4px 20px rgba(0,0,0,.12);--s2:0 12px 48px rgba(0,0,0,.2);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -91,6 +91,8 @@ button{cursor:pointer}
 }
 .brand-sub{font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.08em;text-transform:uppercase}
 .hdr-r{display:flex;align-items:center;gap:8px}
+.usw-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.whoami{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;line-height:1;min-height:9px}
 .user-sw{display:flex;background:var(--sf2);border-radius:20px;padding:3px;border:1px solid var(--bd)}
 .user-btn{
   background:none;border:none;font-size:12px;font-weight:600;color:var(--t3);
@@ -610,6 +612,8 @@ button{cursor:pointer}
 /* Sección de administración (solo Manuel) */
 .admin-hd{font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;padding:0 20px 8px}
 .admin-note{font-size:11px;color:var(--t3);padding:8px 20px 0;line-height:1.5}
+.note-ro{font-size:13px;color:var(--t2);line-height:1.5;background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:10px;white-space:pre-wrap}
+.usec.ro{opacity:.96}
 /* Recomendador con IA */
 .reco-open{width:100%;margin-top:8px;background:var(--gbg);border:1px solid var(--gbd);border-radius:var(--r);color:var(--gold);font-size:13px;font-weight:700;padding:10px;cursor:pointer}
 .reco-open:active{opacity:.8}
@@ -733,9 +737,12 @@ onAuthStateChanged(_auth, async fbUser => {
     <div class="hdr-inner">
       <div class="brand"><span class="brand-main">Codex</span><span class="brand-sub">meum</span></div>
       <div class="hdr-r">
-        <div class="user-sw">
-          <button class="user-btn m-on" id="ub-m" onclick="switchUser('m',true)">Manuel</button>
-          <button class="user-btn" id="ub-j" onclick="switchUser('j',true)">Mª Jesús</button>
+        <div class="usw-wrap">
+          <div class="whoami" id="whoami"></div>
+          <div class="user-sw">
+            <button class="user-btn m-on" id="ub-m" onclick="switchUser('m',true)">Manuel</button>
+            <button class="user-btn" id="ub-j" onclick="switchUser('j',true)">Mª Jesús</button>
+          </div>
         </div>
         <div class="notif-wrap" style="display:none">
           <div class="notif-dot" id="notif-dot"></div>
@@ -1310,6 +1317,17 @@ function statusLabel(st){if(st==='read')return['read','Leído'];if(st==='reading
 const ADMIN_EMAIL='manutendero@gmail.com';
 let authEmail='';
 function isAdmin(){ return !!authEmail && authEmail.toLowerCase()===ADMIN_EMAIL; }
+// Quién eres según tu cuenta de Google (no según el interruptor de vista):
+function myUser(){ return isAdmin()?'m':'j'; }
+// Solo puedes editar TU propio registro de lectura. Si no hay sesión (p.ej. en pruebas), se permite todo.
+function canEdit(u){ return !authEmail || u===myUser(); }
+function updateWhoami(){
+  const el=document.getElementById('whoami');
+  if(!el) return;
+  if(!authEmail){ el.textContent=''; return; }
+  el.textContent='Tú · '+(myUser()==='m'?'Manuel':'Mª Jesús');
+  el.style.color=myUser()==='m'?'var(--gold)':'var(--mj)';
+}
 window._onAuthEmail=(email)=>{
   authEmail=(email||'').trim();
   // Reconocer al lector por su cuenta de Google: admin=Manuel, cualquier otra=Mª Jesús.
@@ -1318,6 +1336,7 @@ window._onAuthEmail=(email)=>{
     const mapped=isAdmin()?'m':'j';
     if(mapped!==user) switchUser(mapped);
   }
+  updateWhoami();
   if(document.getElementById('page-perfil')?.classList.contains('on')) renderPerfil();
 };
 
@@ -1373,12 +1392,16 @@ function toggleTag(id,k){
   if(!ov[id])ov[id]={};
   const t=getTags(id);
   const idx=t.indexOf(k);
+  const added=idx<0;
   if(idx>=0)t.splice(idx,1);else t.push(k);
   ov[id].tags=t;
   persist();
+  const lbl=k==='fav'?'Favorito':k==='abandoned'?'Abandonado':k;
+  showToast((added?'✓ ':'✗ ')+lbl+(added?' añadido':' quitado'));
   // Re-render tag row in detail if open
   const row=document.getElementById('tag-row-'+id);
   if(row)row.innerHTML=tagRowInner(id);
+  renderLib();
 }
 function tagRowInner(id){
   return TAGS.map(t=>
@@ -1638,7 +1661,7 @@ function recommend(bookId,fromUser){
   }
   showToast(`📩 Recomendado a ${toName}`);updateNotifDot();
 }
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._tmr);t._tmr=setTimeout(()=>t.classList.remove('show'),2000);}
 
 // ════════════════════════════════════════════════════
 //  RECOMENDADOR CON IA (sobre TU biblioteca)
@@ -2068,6 +2091,22 @@ function renderDetailShell(b){
     const otherName=u==='m'?'Mª Jesús':'Manuel';
     const active=st==='read'||st==='reading';
     const dt=getDate(b,u);
+    const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    // Solo lectura si este registro NO es el tuyo (no puedes editar lo del otro)
+    if(!canEdit(u)){
+      const [sc,sl]=statusLabel(st);
+      return`<div class="usec ${uc} ro">
+        <div class="usec-top">
+          <span class="usec-nm ${uc}">${un}</span>
+          <span class="rbadge ${sc}">${sl}</span>
+        </div>
+        ${active?`<div class="rating-sec">
+          ${myR?`<div class="rating-lbl">Valoración</div><div class="stars">${starsHtml(myR,u,'15px')}</div><div class="rating-val">${myR}/10</div>`:`<div class="rating-val" style="color:var(--t3)">Sin valorar</div>`}
+          ${com?`<div class="note-lbl">Nota personal</div><div class="note-ro">${esc(com)}</div>`:''}
+          ${st==='read'&&dt?`<div class="date-row"><span class="date-lbl">Leído el</span> <span style="font-size:13px;color:var(--t2)">${dt}</span></div>`:''}
+        </div>`:''}
+      </div>`;
+    }
     return`<div class="usec ${uc}">
       <div class="usec-top">
         <span class="usec-nm ${uc}">${un}</span>
@@ -2083,7 +2122,7 @@ function renderDetailShell(b){
         <div class="rating-stars" id="rs-${u}">${rStars(myR,u,b.id)}</div>
         <div class="rating-val" id="rv-${u}">${myR?myR+'/10':'Sin valorar'}</div>
         <div class="note-lbl">Nota personal</div>
-        <textarea class="note-field" id="cf-${u}" placeholder="Frase, opinión, algo para recordar…" oninput="saveCom(${b.id},'${u}',this.value)">${com}</textarea>
+        <textarea class="note-field" id="cf-${u}" placeholder="Frase, opinión, algo para recordar…" oninput="saveCom(${b.id},'${u}',this.value)">${esc(com)}</textarea>
         ${st==='read'?`<div class="date-row"><span class="date-lbl">Leído el</span><input type="date" class="date-in" id="dt-${u}" value="${dt}" onchange="saveDate(${b.id},'${u}',this.value)"></div>`:''}
         <div style="margin-top:10px">
           <button class="det-act rec-${other}" style="font-size:12px" onclick="recommend(${b.id},'${u}')">📩 Recomendar a ${otherName}</button>
@@ -2191,7 +2230,7 @@ function updateDetailDynamic(b){
   }
 }
 function rStars(n,u,id){const cls=u==='m'?'gold':'mj';return Array.from({length:10},(_,i)=>`<span class="rstar ${i<n?cls:'off'}" onclick="setMyR(${id},'${u}',${i+1})">${i<n?'★':'☆'}</span>`).join('');}
-function setMyR(id,u,n){setOv(id,u,{nota:n});const el=document.getElementById('rs-'+u),ve=document.getElementById('rv-'+u);if(el)el.innerHTML=rStars(n,u,id);if(ve)ve.textContent=n+'/10';updateCardRating(books.find(x=>x.id===id));}
+function setMyR(id,u,n){setOv(id,u,{nota:n});const el=document.getElementById('rs-'+u),ve=document.getElementById('rv-'+u);if(el)el.innerHTML=rStars(n,u,id);if(ve)ve.textContent=n+'/10';updateCardRating(books.find(x=>x.id===id));showToast('⭐ Valoración guardada: '+n+'/10');}
 function saveCom(id,u,t){setOv(id,u,{com:t});}
 function saveDate(id,u,v){setOv(id,u,{fecha:v});}
 function setStatus(id,u,ns){
@@ -2202,6 +2241,8 @@ function setStatus(id,u,ns){
   const seg=document.getElementById('seg-'+u);
   if(seg){seg.querySelectorAll('.stopt').forEach(btn=>{btn.className='stopt';const m=btn.getAttribute('onclick').match(/'(\w+)'\)$/);if(m&&m[1]===ns){if(ns==='unread')btn.classList.add('on-unread');else if(ns==='reading')btn.classList.add('on-reading');else if(ns==='next')btn.classList.add('on-next');else btn.classList.add('on-read-'+u);}});}
   const b=books.find(x=>x.id===id);
+  const msg={read:'✓ Marcado como leído',reading:'📖 Marcado como leyendo',next:'📌 Añadido a próximas lecturas',unread:'Marcado como no leído'};
+  showToast(msg[ns]||'Estado actualizado');
   setTimeout(()=>{renderDetailShell(b);updateDetailDynamic(b);},150);
   renderLib();
   if(document.getElementById('page-wish').classList.contains('on'))renderWish();
