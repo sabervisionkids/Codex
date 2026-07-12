@@ -322,6 +322,7 @@ button{cursor:pointer}
 /* OVERLAY + SHEET */
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:600;display:none;align-items:flex-end;backdrop-filter:blur(6px)}
 .ov.on{display:flex}
+#ov-cover{z-index:700}  /* la portada debe abrirse por encima de la ficha/edición */
 .sheet{
   background:var(--bg2);border-radius:var(--rx) var(--rx) 0 0;
   padding-bottom:calc(var(--sab) + 24px);
@@ -609,6 +610,23 @@ button{cursor:pointer}
 /* Sección de administración (solo Manuel) */
 .admin-hd{font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;padding:0 20px 8px}
 .admin-note{font-size:11px;color:var(--t3);padding:8px 20px 0;line-height:1.5}
+/* Recomendador con IA */
+.reco-open{width:100%;margin-top:8px;background:var(--gbg);border:1px solid var(--gbd);border-radius:var(--r);color:var(--gold);font-size:13px;font-weight:700;padding:10px;cursor:pointer}
+.reco-open:active{opacity:.8}
+.reco-chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.reco-chip{background:var(--bg3);border:1px solid var(--bd2);border-radius:20px;color:var(--t2);font-size:12px;font-weight:600;padding:6px 11px;cursor:pointer}
+.reco-chip:active{opacity:.7}
+.reco-msg{font-size:13px;color:var(--t3);line-height:1.5;text-align:center;padding:14px 8px}
+.reco-row{display:flex;gap:12px;align-items:flex-start;padding:11px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:8px;cursor:pointer}
+.reco-row:active{opacity:.85}
+.reco-th{width:44px;height:62px;border-radius:6px;overflow:hidden;position:relative;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:var(--s0)}
+.reco-th img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;opacity:0;transition:opacity .3s}
+.reco-th img.ok{opacity:1}
+.reco-th-em{font-size:20px;position:relative;z-index:0}
+.reco-inf{flex:1;min-width:0}
+.reco-tit{font-size:14px;font-weight:700;color:var(--t1);line-height:1.25}
+.reco-aut{font-size:12px;color:var(--t3);margin:1px 0 5px}
+.reco-why{font-size:12px;color:var(--gold);line-height:1.4;background:var(--gbg);border-radius:8px;padding:5px 8px}
 </style>
 </head>
 <body>
@@ -734,6 +752,7 @@ onAuthStateChanged(_auth, async fbUser => {
         <input class="srch-in" id="sq" type="search" placeholder="Título, autor, saga…" oninput="onSearch()">
         <button class="srch-x" id="sc" onclick="clearSearch()">✕</button>
       </div>
+      <button class="reco-open" onclick="openReco()">✨ Pídeme un libro de mi biblioteca</button>
     </div>
     <div class="pills-wrap">
       <div class="pills-row">
@@ -742,37 +761,8 @@ onAuthStateChanged(_auth, async fbUser => {
         <button class="pill" data-pill="reading" onclick="setPill('reading')">Leyendo</button>
         <button class="pill" data-pill="next" onclick="setPill('next')">Próximas</button>
         <button class="pill" data-pill="unread" onclick="setPill('unread')">Por leer</button>
-        <button class="pill" data-pill="physical" onclick="setPill('physical')">Físico</button>
-        <button class="pill" data-pill="digital" onclick="setPill('digital')">Digital</button>
-        <button class="pill" data-pill="sagas" onclick="setPill('sagas')">Sagas</button>
-        <button class="pill" data-pill="fav" onclick="setPill('fav')">⭐ Favoritos</button>
-        <button class="pill" data-pill="abandoned" onclick="setPill('abandoned')">🚫 Abandonados</button>
       </div>
     </div>
-  </div>
-  <div class="genre-filter-wrap" id="genre-filter-row" style="display:none"></div>
-  <div class="fdrawer" id="fdrawer">
-    <div class="frow"><div class="flbl">Valoración mínima</div><div class="fpills">
-      <button class="fpill on" data-fn="0" onclick="setFN(0)">Todas</button>
-      <button class="fpill" data-fn="9" onclick="setFN(9)">≥ 9</button>
-      <button class="fpill" data-fn="7" onclick="setFN(7)">≥ 7</button>
-      <button class="fpill" data-fn="5" onclick="setFN(5)">≥ 5</button>
-      <button class="fpill" data-fn="1" onclick="setFN(1)">Con nota</button>
-    </div></div>
-    <div class="frow"><div class="flbl">Autor</div>
-      <select class="fsel" id="fautor" onchange="renderLib()"><option value="">Todos</option></select>
-    </div>
-    <div class="frow"><div class="flbl">Colección</div>
-      <select class="fsel" id="fcol" onchange="renderLib()"><option value="">Todas</option></select>
-    </div>
-    <div class="frow"><div class="flbl">Ordenar por</div><div class="fpills">
-      <button class="fpill on" data-sort="rand" onclick="setSort('rand')">Aleatorio</button>
-      <button class="fpill" data-sort="title" onclick="setSort('title')">Título A–Z</button>
-      <button class="fpill" data-sort="author" onclick="setSort('author')">Autor</button>
-      <button class="fpill" data-sort="myrating" onclick="setSort('myrating')">Mi nota</button>
-      <button class="fpill" data-sort="gbrating" onclick="setSort('gbrating')">Google Books</button>
-    </div></div>
-    <button class="fclr" onclick="clearFilters()">Limpiar filtros</button>
   </div>
   <div class="tbar">
     <span class="rcnt" id="rcount"></span>
@@ -793,6 +783,43 @@ onAuthStateChanged(_auth, async fbUser => {
         </button>
       </div>
     </div>
+  </div>
+  <div class="fdrawer" id="fdrawer">
+    <div class="frow"><div class="flbl">Formato</div><div class="fpills">
+      <button class="fpill on" data-fmt="all" onclick="setFormat('all')">Todos</button>
+      <button class="fpill" data-fmt="fisico" onclick="setFormat('fisico')">📗 Físico</button>
+      <button class="fpill" data-fmt="digital" onclick="setFormat('digital')">📱 Digital</button>
+    </div></div>
+    <div class="frow"><div class="flbl">Etiquetas</div><div class="fpills">
+      <button class="fpill on" data-tag="all" onclick="setTag('all')">Todas</button>
+      <button class="fpill" data-tag="fav" onclick="setTag('fav')">⭐ Favoritos</button>
+      <button class="fpill" data-tag="abandoned" onclick="setTag('abandoned')">🚫 Abandonados</button>
+    </div></div>
+    <div class="frow" id="genre-frow" style="display:none"><div class="flbl">Género</div>
+      <div class="genre-filter-wrap" id="genre-filter-row" style="padding:0"></div>
+    </div>
+    <div class="frow"><div class="flbl">Valoración mínima</div><div class="fpills">
+      <button class="fpill on" data-fn="0" onclick="setFN(0)">Todas</button>
+      <button class="fpill" data-fn="9" onclick="setFN(9)">≥ 9</button>
+      <button class="fpill" data-fn="7" onclick="setFN(7)">≥ 7</button>
+      <button class="fpill" data-fn="5" onclick="setFN(5)">≥ 5</button>
+      <button class="fpill" data-fn="1" onclick="setFN(1)">Con nota</button>
+    </div></div>
+    <div class="frow"><div class="flbl">Autor</div>
+      <select class="fsel" id="fautor" onchange="renderLib()"><option value="">Todos</option></select>
+    </div>
+    <div class="frow"><div class="flbl">Colección / Saga</div>
+      <select class="fsel" id="fcol" onchange="renderLib()"><option value="">Todas</option></select>
+    </div>
+    <div class="frow"><div class="flbl">Ordenar por</div><div class="fpills">
+      <button class="fpill on" data-sort="rand" onclick="setSort('rand')">Aleatorio</button>
+      <button class="fpill" data-sort="recent" onclick="setSort('recent')">Recién añadidos</button>
+      <button class="fpill" data-sort="title" onclick="setSort('title')">Título A–Z</button>
+      <button class="fpill" data-sort="author" onclick="setSort('author')">Autor</button>
+      <button class="fpill" data-sort="myrating" onclick="setSort('myrating')">Mi nota</button>
+      <button class="fpill" data-sort="gbrating" onclick="setSort('gbrating')">Google Books</button>
+    </div></div>
+    <button class="fclr" onclick="clearFilters()">Limpiar filtros</button>
   </div>
   <!-- REC BANNER -->
   <div class="rec-banner" id="rec-banner" onclick="openRecSheet()"></div>
@@ -979,6 +1006,9 @@ onAuthStateChanged(_auth, async fbUser => {
       📷 Escanear portada con IA
     </button>
     <input type="file" id="scan-input" accept="image/*" capture="environment" style="display:none" onchange="scanBookCover(this)">
+    <button class="scan-btn" id="cover-edit-btn" style="display:none;margin-top:8px" onclick="if(editingId)openCoverSheet(editingId)">
+      🖼️ Cambiar portada
+    </button>
     <div class="scan-result" id="scan-result"></div>
     <div class="scan-err" id="scan-err"></div>
     <div style="height:4px"></div>
@@ -1011,6 +1041,28 @@ onAuthStateChanged(_auth, async fbUser => {
   </div>
 </div>
 
+<!-- SHEET: RECOMENDADOR CON IA -->
+<div class="ov" id="ov-reco" onclick="closeSheet('ov-reco')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <button class="sheet-close" onclick="closeSheet('ov-reco')">✕</button>
+    <div class="shtit">✨ Pídeme un libro</div>
+    <div style="padding:12px 20px 0">
+      <div style="font-size:13px;color:var(--t3);line-height:1.5;margin-bottom:10px">Dime en tus palabras qué te apetece leer y te sugiero libros <strong>de tu biblioteca</strong> que encajen.</div>
+      <textarea class="note-field" id="reco-input" placeholder="Ej: algo ligero de misterio que enganche y no sea muy largo…" style="min-height:66px" oninput="document.getElementById('reco-go').disabled=!this.value.trim()"></textarea>
+      <div class="reco-chips" id="reco-chips">
+        <button class="reco-chip" onclick="recoChip('Algo corto y ligero para desconectar')">Corto y ligero</button>
+        <button class="reco-chip" onclick="recoChip('Una novela histórica que enganche')">Histórica que enganche</button>
+        <button class="reco-chip" onclick="recoChip('Un thriller o misterio con giros')">Misterio con giros</button>
+        <button class="reco-chip" onclick="recoChip('Algo para reflexionar, espiritual')">Para reflexionar</button>
+      </div>
+      <button class="btn btn-p" style="width:100%;margin-top:10px" id="reco-go" onclick="askReco()" disabled>Buscar en mi biblioteca</button>
+      <div id="reco-results" style="margin-top:14px"></div>
+      <div style="height:16px"></div>
+    </div>
+  </div>
+</div>
+
 <!-- MAIN SCRIPT — regular (not module) so onclick works -->
 <script>
 // ════════════════════════════════════════════════════
@@ -1024,6 +1076,7 @@ const COL_DATA = {"La villa de las Telas":{"authors":["Anne Jacobs"],"max_order"
 // ════════════════════════════════════════════════════
 let books = [];  // se construye desde BASE + ov.__cat una vez cargado ov (ver rebuildBooks)
 let user='m', view='list', pill='all', fSort='rand', fN=0, showFil=false;
+let fFormat='all', fTag='all';   // filtros independientes (combinables) del panel
 let visible=40, nid=647, addType='own', editingId=null;
 const PAGE=40;
 let srchTimer=null;
@@ -1387,8 +1440,10 @@ function updateGenreFilter(){
   });
   const sorted = Object.entries(genreCount).filter(([,c])=>c>=2).sort((a,b)=>b[1]-a[1]).slice(0,12);
   const row = document.getElementById('genre-filter-row');
+  const frow = document.getElementById('genre-frow');
   if(!row) return;
-  if(!sorted.length){ row.style.display='none'; return; }
+  if(!sorted.length){ if(frow) frow.style.display='none'; return; }
+  if(frow) frow.style.display='block';
   row.style.display='flex';
   row.innerHTML = [['','Todos'],...sorted].map(([g,label])=>
     `<button class="genre-fpill ${activeGenre===g?'on':''}" onclick="setGenreFilter('${g}')">${label||g}</button>`
@@ -1468,7 +1523,18 @@ function goTo(p){
   },{passive:true});
 })();
 const GENRE_MAP={'fiction':'Ficción','literary fiction':'Ficción literaria','historical fiction':'Histórica','mystery':'Novela negra','mystery & detective':'Novela negra','crime':'Crimen','thriller':'Thriller','suspense':'Suspense','horror':'Terror','science fiction':'Ciencia ficción','fantasy':'Fantasía','adventure':'Aventuras','romance':'Romance','love stories':'Romance','historical':'Histórica','biography':'Biografía','autobiography':'Autobiografía','biography & autobiography':'Biografía','history':'Historia','true crime':'Crimen real','nonfiction':'No ficción','self-help':'Autoayuda','psychology':'Psicología','philosophy':'Filosofía','religion':'Religión','spirituality':'Espiritualidad','humor':'Humor','travel':'Viajes','cooking':'Cocina','health':'Salud','sports':'Deporte','politics':'Política','economics':'Economía','science':'Ciencia','juvenile fiction':'Juvenil','young adult fiction':'Juvenil','children':'Infantil','graphic novels':'Cómic','comics':'Cómic','poetry':'Poesía','drama':'Drama','war':'Bélica','western':'Western','espionage':'Espionaje','short stories':'Relatos','essays':'Ensayo','narrative':'Narrativa'};
-function translateGenre(raw){if(!raw)return null;const parts=raw.split('/').map(s=>s.trim().toLowerCase());for(let i=parts.length-1;i>=0;i--){const t=GENRE_MAP[parts[i]];if(t)return t;for(const[k,v]of Object.entries(GENRE_MAP)){if(parts[i].includes(k)||k.includes(parts[i]))return v;}}return parts[0].charAt(0).toUpperCase()+parts[0].slice(1);}
+function translateGenre(raw){
+  if(!raw)return null;
+  const parts=raw.split('/').map(s=>s.trim().toLowerCase()).filter(Boolean);
+  // 1) Coincidencia exacta, de lo más específico (última parte) a lo más general
+  for(let i=parts.length-1;i>=0;i--){ if(GENRE_MAP[parts[i]]) return GENRE_MAP[parts[i]]; }
+  // 2) Coincidencia conservadora: la categoría contiene un género conocido (evita falsos positivos cortos)
+  for(let i=parts.length-1;i>=0;i--){
+    for(const[k,v]of Object.entries(GENRE_MAP)){ if(k.length>=4 && parts[i].includes(k)) return v; }
+  }
+  // 3) Desconocido → no mostrar nada (mejor sin género que un género equivocado)
+  return null;
+}
 function getGenres(b){
   const cats=getCats(b);
   const manual=getManualGenre(b.id);
@@ -1575,6 +1641,66 @@ function recommend(bookId,fromUser){
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 
 // ════════════════════════════════════════════════════
+//  RECOMENDADOR CON IA (sobre TU biblioteca)
+// ════════════════════════════════════════════════════
+function openReco(){
+  document.getElementById('reco-results').innerHTML='';
+  document.getElementById('ov-reco').classList.add('on');
+  setTimeout(()=>document.getElementById('reco-input')?.focus(),200);
+}
+function recoChip(txt){
+  const inp=document.getElementById('reco-input');
+  inp.value=txt;
+  document.getElementById('reco-go').disabled=false;
+}
+async function askReco(){
+  const q=(document.getElementById('reco-input').value||'').trim();
+  const res=document.getElementById('reco-results');
+  const btn=document.getElementById('reco-go');
+  if(!q){ return; }
+  if(!getGeminiKey()){ res.innerHTML=`<div class="reco-msg">${isAdmin()?'Configura tu clave de Gemini en Perfil → Administración para usar esto.':'El buscador con IA aún no está configurado. Pídeselo a Manuel.'}</div>`; return; }
+  btn.disabled=true; btn.textContent='Pensando…';
+  res.innerHTML='<div class="reco-msg">Buscando entre tus libros…</div>';
+  try{
+    // Candidatos: libros que el usuario actual NO ha leído todavía
+    const cands=books.filter(b=>getStatus(b,user)!=='read');
+    const lista=cands.map(b=>{
+      const g=getGenres(b).join(', ');
+      return `${b.id}|${b.titulo}|${b.autor||'?'}${g?'|'+g:''}`;
+    }).join('\n');
+    const prompt=`Eres un bibliotecario que conoce bien los libros publicados. Esta es la biblioteca de un lector (una línea por libro, formato: id|título|autor|géneros):\n${lista}\n\nEl lector pide: "${q}"\n\nUsa tu conocimiento real de esos libros (tono, dificultad, extensión, temática) para elegir hasta 5 que encajen de verdad con lo que pide. Responde SOLO con JSON válido, sin markdown, con este formato exacto: [{"id":<id de la lista>,"motivo":"una frase breve y natural en español explicando por qué encaja"}]. Ordénalos del que mejor encaja al que menos. Usa únicamente ids que aparezcan en la lista. Si nada encaja bien, devuelve [].`;
+    let txt;
+    try{ txt=await callGemini([{text:prompt}]); }
+    catch(e){ res.innerHTML=`<div class="reco-msg">⚠️ ${geminiErrMsg(e)}</div>`; return; }
+    txt=(txt||'').replace(/```json|```/g,'').trim();
+    let recs; try{ recs=JSON.parse(txt); }catch{ recs=null; }
+    if(!Array.isArray(recs)){ res.innerHTML='<div class="reco-msg">No he podido interpretar la respuesta. Prueba a describirlo de otra forma.</div>'; return; }
+    renderRecoResults(recs);
+  }catch(e){ res.innerHTML=`<div class="reco-msg">⚠️ ${geminiErrMsg(e)}</div>`; }
+  finally{ btn.disabled=false; btn.textContent='Buscar en mi biblioteca'; }
+}
+function renderRecoResults(recs){
+  const res=document.getElementById('reco-results');
+  const valid=recs.map(r=>({b:books.find(x=>x.id===r.id),motivo:(r.motivo||'').trim()})).filter(x=>x.b);
+  if(!valid.length){ res.innerHTML='<div class="reco-msg">No he encontrado nada que encaje con eso. Prueba a pedirlo de otra forma.</div>'; return; }
+  res.innerHTML=valid.map(({b,motivo})=>{
+    const cov=covCache[b.id];
+    return `<div class="reco-row" onclick="closeSheet('ov-reco');openDetail(${b.id})">
+      <div class="reco-th"><div style="position:absolute;inset:0;background:${bg(b)}"></div>
+        ${cov?`<img src="${cov}" alt="" onload="this.classList.add('ok')" onerror="this.style.display='none'">`:''}
+        <span class="reco-th-em">${em(b)}</span></div>
+      <div class="reco-inf">
+        <div class="reco-tit">${b.titulo}</div>
+        <div class="reco-aut">${b.autor||'—'}${b.coleccion?' · '+b.coleccion:''}</div>
+        ${motivo?`<div class="reco-why">${motivo}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  // Cargar portadas que falten
+  valid.forEach(({b})=>{ if(covCache[b.id]===undefined) queueFetch(b); });
+}
+
+// ════════════════════════════════════════════════════
 //  SEARCH
 // ════════════════════════════════════════════════════
 function onSearch(){const v=document.getElementById('sq').value;document.getElementById('sc').classList.toggle('vis',v.length>0);clearTimeout(srchTimer);srchTimer=setTimeout(()=>{visible=PAGE;renderLib();updateFiltCount();},200);}
@@ -1584,33 +1710,38 @@ function clearSearch(){document.getElementById('sq').value='';document.getElemen
 //  FILTERS
 // ════════════════════════════════════════════════════
 function setPill(p){pill=p;document.querySelectorAll('[data-pill]').forEach(el=>el.classList.toggle('on',el.dataset.pill===p));visible=PAGE;renderLib();updateFiltCount();}
+function setFormat(f){fFormat=f;document.querySelectorAll('[data-fmt]').forEach(el=>el.classList.toggle('on',el.dataset.fmt===f));visible=PAGE;renderLib();updateFiltCount();}
+function setTag(t){fTag=t;document.querySelectorAll('[data-tag]').forEach(el=>el.classList.toggle('on',el.dataset.tag===t));visible=PAGE;renderLib();updateFiltCount();}
 function setFN(n){fN=n;document.querySelectorAll('[data-fn]').forEach(el=>el.classList.toggle('on',+el.dataset.fn===n));renderLib();updateFiltCount();}
 function setSort(s){fSort=s;if(s==='rand')books=shuffle([...books]);document.querySelectorAll('[data-sort]').forEach(el=>el.classList.toggle('on',el.dataset.sort===s));visible=PAGE;renderLib();}
 function toggleDrawer(){showFil=!showFil;document.getElementById('fdrawer').classList.toggle('on',showFil);document.getElementById('filtbtn').classList.toggle('on',showFil);}
-function clearFilters(){pill='all';fN=0;fSort='rand';document.getElementById('sq').value='';document.getElementById('sc').classList.remove('vis');document.getElementById('fautor').value='';document.getElementById('fcol').value='';document.querySelectorAll('[data-pill]').forEach(el=>el.classList.toggle('on',el.dataset.pill==='all'));document.querySelectorAll('[data-fn]').forEach(el=>el.classList.toggle('on',+el.dataset.fn===0));document.querySelectorAll('[data-sort]').forEach(el=>el.classList.toggle('on',el.dataset.sort==='rand'));books=shuffle([...books]);visible=PAGE;updateFiltCount();renderLib();}
-function updateFiltCount(){const q=document.getElementById('sq')?.value.trim();const a=document.getElementById('fautor')?.value;const c=document.getElementById('fcol')?.value;const n=[pill!=='all',fN>0,!!q,!!a,!!c].filter(Boolean).length;const el=document.getElementById('fcnt');if(n>0){el.textContent=n;el.style.display='inline';}else el.style.display='none';}
+function clearFilters(){pill='all';fFormat='all';fTag='all';fN=0;fSort='rand';activeGenre='';document.getElementById('sq').value='';document.getElementById('sc').classList.remove('vis');document.getElementById('fautor').value='';document.getElementById('fcol').value='';document.querySelectorAll('[data-pill]').forEach(el=>el.classList.toggle('on',el.dataset.pill==='all'));document.querySelectorAll('[data-fmt]').forEach(el=>el.classList.toggle('on',el.dataset.fmt==='all'));document.querySelectorAll('[data-tag]').forEach(el=>el.classList.toggle('on',el.dataset.tag==='all'));document.querySelectorAll('[data-fn]').forEach(el=>el.classList.toggle('on',+el.dataset.fn===0));document.querySelectorAll('[data-sort]').forEach(el=>el.classList.toggle('on',el.dataset.sort==='rand'));books=shuffle([...books]);visible=PAGE;updateGenreFilter();updateFiltCount();renderLib();}
+function updateFiltCount(){const q=document.getElementById('sq')?.value.trim();const a=document.getElementById('fautor')?.value;const c=document.getElementById('fcol')?.value;const n=[pill!=='all',fFormat!=='all',fTag!=='all',fN>0,!!activeGenre,!!q,!!a,!!c].filter(Boolean).length;const el=document.getElementById('fcnt');if(n>0){el.textContent=n;el.style.display='inline';}else el.style.display='none';}
 function filterByAuthor(autor){document.getElementById('fautor').value=autor;setPill('all');if(!showFil)toggleDrawer();renderLib();updateFiltCount();}
 function applyFilters(list){
   const q=(document.getElementById('sq')?.value||'').toLowerCase().trim();
   const fa=(document.getElementById('fautor')?.value||'').toLowerCase();
   const fc=(document.getElementById('fcol')?.value||'').toLowerCase();
-  if(q)list=list.filter(b=>b.titulo.toLowerCase().includes(q)||b.autor.toLowerCase().includes(q)||(b.coleccion||'').toLowerCase().includes(q));
+  if(q)list=list.filter(b=>b.titulo.toLowerCase().includes(q)||b.autor.toLowerCase().includes(q)||(b.coleccion||'').toLowerCase().includes(q)||getGenres(b).some(g=>g.toLowerCase().includes(q)));
   if(fa)list=list.filter(b=>b.autor.toLowerCase()===fa);
   if(fc)list=list.filter(b=>(b.coleccion||'').toLowerCase()===fc);
-  const nw=list.filter(b=>getStatus(b)!=='wish');
-  if(pill==='read')list=nw.filter(b=>getStatus(b)==='read');
-  else if(pill==='reading')list=nw.filter(b=>getStatus(b)==='reading');
-  else if(pill==='next')list=nw.filter(b=>getStatus(b)==='next');
-  else if(pill==='unread')list=nw.filter(b=>getStatus(b)==='unread');
-  else if(pill==='physical')list=nw.filter(b=>b.formato==='fisico');
-  else if(pill==='digital')list=nw.filter(b=>b.formato==='digital');
-  else if(pill==='sagas')list=nw.filter(b=>b.coleccion);
-  else if(pill==='fav')list=nw.filter(b=>hasTag(b.id,'fav'));
-  else if(pill==='abandoned')list=nw.filter(b=>hasTag(b.id,'abandoned'));
-  else list=nw;
+  // La biblioteca nunca muestra los deseos
+  list=list.filter(b=>getStatus(b)!=='wish');
+  // Estado de lectura (fuera) — filtros independientes y combinables:
+  if(pill==='read')list=list.filter(b=>getStatus(b)==='read');
+  else if(pill==='reading')list=list.filter(b=>getStatus(b)==='reading');
+  else if(pill==='next')list=list.filter(b=>getStatus(b)==='next');
+  else if(pill==='unread')list=list.filter(b=>getStatus(b)==='unread');
+  // Formato (panel)
+  if(fFormat==='fisico')list=list.filter(b=>b.formato==='fisico');
+  else if(fFormat==='digital')list=list.filter(b=>b.formato==='digital');
+  // Etiquetas (panel)
+  if(fTag==='fav')list=list.filter(b=>hasTag(b.id,'fav'));
+  else if(fTag==='abandoned')list=list.filter(b=>hasTag(b.id,'abandoned'));
   if(fN>0)list=list.filter(b=>getMyR(b)>=fN||getGbR(b)>=fN);
   if(activeGenre)list=list.filter(b=>getGenres(b).includes(activeGenre));
-  if(fSort==='title')list.sort((a,b)=>a.titulo.localeCompare(b.titulo));
+  if(fSort==='recent')list.sort((a,b)=>b.id-a.id);
+  else if(fSort==='title')list.sort((a,b)=>a.titulo.localeCompare(b.titulo));
   else if(fSort==='author')list.sort((a,b)=>(a.autor||'').localeCompare(b.autor||''));
   else if(fSort==='myrating')list.sort((a,b)=>getMyR(b)-getMyR(a));
   else if(fSort==='gbrating')list.sort((a,b)=>getGbR(b)-getGbR(a));
@@ -1795,21 +1926,22 @@ async function loadCovers(list){
 
 async function fetchData(b){
   covCache[b.id]=null;
+  // Marca el libro como "ya buscado" y lo persiste, para no volver a pedirlo cada sesión
+  const done=()=>{ if(!gbCache[b.id])gbCache[b.id]={}; gbCache[b.id].tried=1; persistGbCache(); };
   // Build multiple query strategies, try them in order
   const titulo=b.titulo||'';
   const autor=b.autor||'';
   const apellido=autor.split(' ').filter(w=>w.length>2).pop()||'';
 
   // Strategy 1: Google Books — título limpio + apellido autor
-  const gotGb = await _tryGoogleBooks(b, `${titulo} ${apellido}`, 5);
-  if(gotGb) return;
+  if(await _tryGoogleBooks(b, `${titulo} ${apellido}`, 5)){ done(); return; }
 
   // Strategy 2: Google Books — solo título (sin autor, más resultados)
-  const gotGb2 = await _tryGoogleBooks(b, titulo, 5);
-  if(gotGb2) return;
+  if(await _tryGoogleBooks(b, titulo, 5)){ done(); return; }
 
   // Strategy 3: Open Library fallback
   await _tryOpenLibrary(b, `${titulo} ${apellido}`);
+  done();
 }
 
 async function _tryGoogleBooks(b, query, maxResults){
@@ -1989,7 +2121,6 @@ function renderDetailShell(b){
       ${tagRowHtml(b.id)}
       <div class="det-actions">
         <button class="det-act edit" onclick="openEdit(${b.id})">✏️ Editar</button>
-        <button class="det-act" onclick="openCoverSheet(${b.id})">🖼️ Portada</button>
         <button class="det-act" onclick="deleteBook(${b.id})">🗑️ Eliminar</button>
       </div>
       ${sameAuthorHtml(b)}
@@ -2097,6 +2228,7 @@ function openAdd(){
   ['a-t','a-a','a-c','a-o'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('a-f').value='digital';document.getElementById('a-wf').value='';
   document.getElementById('saga-sug').classList.remove('vis');
+  document.getElementById('cover-edit-btn').style.display='none';  // al añadir aún no hay libro
   setAddType('own');
   document.getElementById('ov-add').classList.add('on');
 }
@@ -2112,6 +2244,7 @@ function openEdit(id){
   document.getElementById('a-col-grp').style.display='block';document.getElementById('a-ord-grp').style.display='block';
   document.getElementById('a-fmt-grp').style.display='block';document.getElementById('a-wf-grp').style.display='none';
   document.getElementById('saga-sug').classList.remove('vis');
+  document.getElementById('cover-edit-btn').style.display='flex';  // al editar, sí se puede cambiar portada
   document.getElementById('ov-add').classList.add('on');
 }
 function checkSagaSuggest(){
@@ -2290,6 +2423,31 @@ function saveCoverForBook(id, url) {
 // La clave de Gemini NO va en el código (el repo es público). Cada dispositivo
 // guarda la suya en localStorage; se pide una sola vez.
 function getGeminiKey(){ return (ov.__config?.geminiKey||localStorage.getItem('cx-gemini-key')||'').trim(); }
+// Llamada a Gemini centralizada, con reintentos ante 429 (límite temporal de Google).
+// 'parts' = array de partes (texto y/o imagen). Devuelve el texto de la respuesta.
+async function callGemini(parts, retries){
+  retries = (retries==null)?2:retries;
+  const key=getGeminiKey();
+  if(!key) throw new Error('NO_KEY');
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
+  for(let i=0;i<=retries;i++){
+    let r;
+    try{ r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts}]})}); }
+    catch(e){ if(i<retries){ await new Promise(res=>setTimeout(res,1200)); continue; } throw new Error('NET'); }
+    if(r.status===429){ if(i<retries){ await new Promise(res=>setTimeout(res,1500*(i+1))); continue; } throw new Error('RATE_LIMIT'); }
+    if(!r.ok) throw new Error('HTTP_'+r.status);
+    const d=await r.json();
+    return d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  }
+  throw new Error('RATE_LIMIT');
+}
+function geminiErrMsg(e){
+  const m=(e&&e.message)||'';
+  if(m==='RATE_LIMIT') return 'Google ha limitado las peticiones de IA ahora mismo. Espera un minuto y prueba otra vez.';
+  if(m==='NO_KEY') return isAdmin()?'Configura tu clave de Gemini en Perfil → Administración.':'La IA aún no está configurada. Pídeselo a Manuel.';
+  if(m==='NET') return 'Sin conexión con Google. Revisa tu internet.';
+  return 'No se pudo completar la petición de IA.';
+}
 function manageGeminiKey(){
   if(!isAdmin()){ showToast('Solo Manuel gestiona las claves'); return; }
   const cur=getGeminiKey();
@@ -2353,25 +2511,14 @@ async function scanBookCover(input) {
       r.readAsDataURL(file);
     });
 
-    // 2. Llamar a Gemini Vision
-    const gemRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: 'Analiza esta imagen de un libro. Extrae el título exacto, el nombre del autor y el ISBN si es visible. Responde SOLO con JSON en este formato exacto, sin markdown ni texto extra: {"titulo":"...","autor":"...","isbn":"..."}. Si no encuentras algún campo, deja el valor como cadena vacía.' },
-              { inline_data: { mime_type: file.type, data: b64 } }
-            ]
-          }]
-        })
-      }
-    );
-    if (!gemRes.ok) throw new Error(`Gemini error ${gemRes.status}`);
-    const gemData = await gemRes.json();
-    const rawText = gemData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    // 2. Llamar a Gemini Vision (con reintentos ante 429)
+    let rawText;
+    try {
+      rawText = await callGemini([
+        { text: 'Analiza esta imagen de un libro. Extrae el título exacto, el nombre del autor y el ISBN si es visible. Responde SOLO con JSON en este formato exacto, sin markdown ni texto extra: {"titulo":"...","autor":"...","isbn":"..."}. Si no encuentras algún campo, deja el valor como cadena vacía.' },
+        { inline_data: { mime_type: file.type, data: b64 } }
+      ]);
+    } catch(e) { throw new Error(geminiErrMsg(e)); }
     const cleaned = rawText.replace(/```json|```/g, '').trim();
     let parsed;
     try { parsed = JSON.parse(cleaned); }
@@ -2657,17 +2804,35 @@ function sharedReadsHtml(){
 // ════════════════════════════════════════════════════
 //  BACKUP / RESTORE
 // ════════════════════════════════════════════════════
-function exportBackup(){
-  const backup={
-    version:1,
-    date:new Date().toISOString(),
-    users:['m','j'],
-    data:ov
-  };
-  const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
+// Guardar un archivo dejando elegir dónde, según lo que soporte el dispositivo:
+//   1) Diálogo "Guardar como" (Chrome/Edge escritorio, Android) → eliges carpeta y nombre.
+//   2) Hoja de compartir con archivo (iPhone/Safari) → "Guardar en Archivos" y eliges carpeta.
+//   3) Descarga normal (último recurso).
+async function saveFile(filename, content, mime){
+  const ext='.'+filename.split('.').pop();
+  if(window.showSaveFilePicker){
+    try{
+      const handle=await window.showSaveFilePicker({ suggestedName:filename, types:[{description:filename,accept:{[mime.split(';')[0]]:[ext]}}] });
+      const w=await handle.createWritable(); await w.write(content); await w.close();
+      showToast('✓ Guardado'); return;
+    }catch(e){ if(e && e.name==='AbortError') return; }  // canceló → no hacemos nada
+  }
+  try{
+    const file=new File([content], filename, {type:mime});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({ files:[file], title:filename });
+      return;
+    }
+  }catch(e){ if(e && e.name==='AbortError') return; }  // canceló la hoja de compartir
+  const blob=new Blob([content],{type:mime});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download=`codex-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();
-  showToast('✓ Backup exportado');
+  a.download=filename;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  showToast('✓ Exportado');
+}
+async function exportBackup(){
+  const backup={ version:1, date:new Date().toISOString(), users:['m','j'], data:ov };
+  await saveFile(`codex-backup-${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(backup,null,2), 'application/json');
 }
 function importBackup(input){
   const file=input.files[0];if(!file)return;
@@ -2701,8 +2866,7 @@ function importBackup(input){
 function exportCsv(){
   const rows=['ID,Título,Autor,Formato,Colección,Orden,Estado M,Nota M,Fecha M,Nota M texto,Estado MJ,Nota MJ,Fecha MJ,Nota MJ texto'];
   books.forEach(b=>{const e=s=>'"'+(s||'').replace(/"/g,'""')+'"';rows.push([b.id,e(b.titulo),e(b.autor),b.formato,e(b.coleccion),b.coleccion_orden||'',getStatus(b,'m'),getMyR(b,'m')||'',getDate(b,'m'),e(getCom(b,'m')),getStatus(b,'j'),getMyR(b,'j')||'',getDate(b,'j'),e(getCom(b,'j'))].join(','));});
-  const blob=new Blob(['\uFEFF'+rows.join('\n')],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='codex.csv';a.click();
+  saveFile(`codex-${new Date().toISOString().slice(0,10)}.csv`, '\uFEFF'+rows.join('\n'), 'text/csv;charset=utf-8;');
 }
 
 // ════════════════════════════════════════════════════
@@ -2727,6 +2891,7 @@ Object.entries(_gbCachePersisted).forEach(([id, val]) => {
   gbCache[numId] = val;
   if (val.syn) synCache[numId] = val.syn;
   if (val.cover && covCache[numId] === undefined) covCache[numId] = val.cover;  // portada guardada
+  else if (val.tried && covCache[numId] === undefined) covCache[numId] = null;  // ya se buscó (aunque sin portada): no reintentar
 });
 // Restore manually saved covers from ov into covCache
 Object.entries(ov).forEach(([id, val]) => {
